@@ -1,6 +1,6 @@
 ---
 # You can also start simply with 'default'
-theme: seriph
+# theme: seriph
 # random image from a curated Unsplash collection by Anthony
 # like them? see https://unsplash.com/collections/94734566/slidev
 background: https://cover.sli.dev
@@ -17,7 +17,7 @@ class: text-center
 drawings:
   persist: false
 # slide transition: https://sli.dev/guide/animations.html#slide-transitions
-transition: slide-left
+# transition: slide-left
 # enable MDC Syntax: https://sli.dev/features/mdc
 mdc: true
 # open graph
@@ -25,615 +25,273 @@ mdc: true
 #  ogImage: https://cover.sli.dev
 ---
 
-# Welcome to Slidev
+# Object Relational Mapper
+CST 363
 
-Presentation slides for developers
 
-<div @click="$slidev.nav.next" class="mt-12 py-1" hover:bg="white op-10">
-  Press Space for next page <carbon:arrow-right />
-</div>
-
-<div class="abs-br m-6 text-xl">
-  <button @click="$slidev.nav.openInEditor()" title="Open in Editor" class="slidev-icon-btn">
-    <carbon:edit />
-  </button>
-  <a href="https://github.com/slidevjs/slidev" target="_blank" class="slidev-icon-btn">
-    <carbon:logo-github />
-  </a>
-</div>
-
-<!--
-The last comment block of each slide will be treated as slide notes. It will be visible and editable in Presenter Mode along with the slide. [Read more in the docs](https://sli.dev/guide/syntax.html#notes)
--->
 
 ---
-transition: fade-out
----
 
-# What is Slidev?
+## 1  Why ORMs Exist
 
-Slidev is a slides maker and presenter designed for developers, consist of the following features
+* **Impedance mismatch** – Python works with *objects*, Postgres stores *rows*.  
+  Bridging the two manually means endless `cursor.execute()` calls, hand‑written SQL strings, and error‑prone type conversions.
 
-- 📝 **Text-based** - focus on the content with Markdown, and then style them later
-- 🎨 **Themable** - themes can be shared and re-used as npm packages
-- 🧑‍💻 **Developer Friendly** - code highlighting, live coding with autocompletion
-- 🤹 **Interactive** - embed Vue components to enhance your expressions
-- 🎥 **Recording** - built-in recording and camera view
-- 📤 **Portable** - export to PDF, PPTX, PNGs, or even a hostable SPA
-- 🛠 **Hackable** - virtually anything that's possible on a webpage is possible in Slidev
-<br>
-<br>
+* **Raise the abstraction** – let instructors and students focus on domain models (`User`, `Order`, `Product`) instead of SQL plumbing.
 
-Read more about [Why Slidev?](https://sli.dev/guide/why)
+* **Database portability** – the *same* Python code can speak to Postgres in production and SQLite during unit‑tests.
 
-<!--
-You can have `style` tag in markdown to override the style for the current page.
-Learn more: https://sli.dev/features/slide-scope-style
--->
-
-<style>
-h1 {
-  background-color: #2B90B6;
-  background-image: linear-gradient(45deg, #4EC5D4 10%, #146b8c 20%);
-  background-size: 100%;
-  -webkit-background-clip: text;
-  -moz-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  -moz-text-fill-color: transparent;
-}
-</style>
-
-<!--
-Here is another comment.
--->
+* **Still SQL‑centred** – an ORM *generates* SQL; you can drop down to raw SQL any time.
 
 ---
-transition: slide-up
-level: 2
----
 
-# Navigation
+## 2  Trade‑offs at a Glance
 
-Hover on the bottom-left corner to see the navigation's controls panel, [learn more](https://sli.dev/guide/ui#navigation-bar)
+| ✅ Strengths | ⚠️ Watch‑outs |
+|--------------|---------------|
+| Faster development & fewer lines of code | Hidden queries → *N + 1* problems |
+| Compile‑time model validation | Harder to squeeze the last % of performance |
+| Safe parameter binding (no SQL‑injection) | Learning curve: sessions, identity map |
+| Easy migrations via Alembic | May tempt you to ignore good schema design |
 
-## Keyboard Shortcuts
-
-|                                                     |                             |
-| --------------------------------------------------- | --------------------------- |
-| <kbd>right</kbd> / <kbd>space</kbd>                 | next animation or slide     |
-| <kbd>left</kbd>  / <kbd>shift</kbd><kbd>space</kbd> | previous animation or slide |
-| <kbd>up</kbd>                                       | previous slide              |
-| <kbd>down</kbd>                                     | next slide                  |
-
-<!-- https://sli.dev/guide/animations.html#click-animation -->
-<img
-  v-click
-  class="absolute -bottom-9 -left-7 w-80 opacity-50"
-  src="https://sli.dev/assets/arrow-bottom-left.svg"
-  alt=""
-/>
-<p v-after class="absolute bottom-23 left-45 opacity-30 transform -rotate-10">Here!</p>
 
 ---
-layout: two-cols
-layoutClass: gap-16
+
+## 3  SQLAlchemy: Two Layers
+
+1. **Core** – thin, explicit SQL construction layer.  
+   *Think “Pythonic SQL string‑builder.”*
+
+2. **ORM** – builds on Core, adds identity map, sessions, and Python classes that map to tables.
+
+> **We’ll teach with the 2.0 style API (released 2023), which is declarative‑by‑default and async‑friendly.**
+
 ---
 
-# Table of contents
 
-You can use the `Toc` component to generate a table of contents for your slides:
+## 4  Getting Set Up
 
-```html
-<Toc minDepth="1" maxDepth="1" />
+```bash
+python -m venv venv
+source venv/bin/activate       # Windows: venv\Scripts\activate
+pip install sqlalchemy psycopg[binary] alembic
 ```
 
-The title will be inferred from your slide content, or you can override it with `title` and `level` in your frontmatter.
+*Postgres must be running (Docker‑compose, Homebrew, etc.).*  
+Create a database and user:
 
-::right::
-
-<Toc text-sm minDepth="1" maxDepth="2" />
-
----
-layout: image-right
-image: https://cover.sli.dev
----
-
-# Code
-
-Use code snippets and get the highlighting directly, and even types hover!
-
-```ts {all|5|7|7-8|10|all} twoslash
-// TwoSlash enables TypeScript hover information
-// and errors in markdown code blocks
-// More at https://shiki.style/packages/twoslash
-
-import { computed, ref } from 'vue'
-
-const count = ref(0)
-const doubled = computed(() => count.value * 2)
-
-doubled.value = 2
+```bash
+psql -U postgres
+CREATE DATABASE ecommerce;
+CREATE USER shop WITH PASSWORD 'secret';
+GRANT ALL ON DATABASE ecommerce TO shop;
 ```
 
-<arrow v-click="[4, 5]" x1="350" y1="310" x2="195" y2="334" color="#953" width="2" arrowSize="1" />
-
-<!-- This allow you to embed external code blocks -->
-<<< @/snippets/external.ts#snippet
-
-<!-- Footer -->
-
-[Learn more](https://sli.dev/features/line-highlighting)
-
-<!-- Inline style -->
-<style>
-.footnotes-sep {
-  @apply mt-5 opacity-10;
-}
-.footnotes {
-  @apply text-sm opacity-75;
-}
-.footnote-backref {
-  display: none;
-}
-</style>
-
-<!--
-Notes can also sync with clicks
-
-[click] This will be highlighted after the first click
-
-[click] Highlighted with `count = ref(0)`
-
-[click:3] Last click (skip two clicks)
--->
-
----
-level: 2
----
-
-# Shiki Magic Move
-
-Powered by [shiki-magic-move](https://shiki-magic-move.netlify.app/), Slidev supports animations across multiple code snippets.
-
-Add multiple code blocks and wrap them with <code>````md magic-move</code> (four backticks) to enable the magic move. For example:
-
-````md magic-move {lines: true}
-```ts {*|2|*}
-// step 1
-const author = reactive({
-  name: 'John Doe',
-  books: [
-    'Vue 2 - Advanced Guide',
-    'Vue 3 - Basic Guide',
-    'Vue 4 - The Mystery'
-  ]
-})
-```
-
-```ts {*|1-2|3-4|3-4,8}
-// step 2
-export default {
-  data() {
-    return {
-      author: {
-        name: 'John Doe',
-        books: [
-          'Vue 2 - Advanced Guide',
-          'Vue 3 - Basic Guide',
-          'Vue 4 - The Mystery'
-        ]
-      }
-    }
-  }
-}
-```
-
-```ts
-// step 3
-export default {
-  data: () => ({
-    author: {
-      name: 'John Doe',
-      books: [
-        'Vue 2 - Advanced Guide',
-        'Vue 3 - Basic Guide',
-        'Vue 4 - The Mystery'
-      ]
-    }
-  })
-}
-```
-
-Non-code blocks are ignored.
-
-```vue
-<!-- step 4 -->
-<script setup>
-const author = {
-  name: 'John Doe',
-  books: [
-    'Vue 2 - Advanced Guide',
-    'Vue 3 - Basic Guide',
-    'Vue 4 - The Mystery'
-  ]
-}
-</script>
-```
-````
 
 ---
 
-# Components
+## 5  Connecting
 
-<div grid="~ cols-2 gap-4">
-<div>
-
-You can use Vue components directly inside your slides.
-
-We have provided a few built-in components like `<Tweet/>` and `<Youtube/>` that you can use directly. And adding your custom components is also super easy.
-
-```html
-<Counter :count="10" />
+```python
+from sqlalchemy import create_engine
+engine = create_engine(
+    "postgresql+psycopg://shop:secret@localhost:5432/ecommerce",
+    echo=True,      # echo SQL to stdout for teaching moments
+)
 ```
 
-<!-- ./components/Counter.vue -->
-<Counter :count="10" m="t-4" />
-
-Check out [the guides](https://sli.dev/builtin/components.html) for more.
-
-</div>
-<div>
-
-```html
-<Tweet id="1390115482657726468" />
-```
-
-<Tweet id="1390115482657726468" scale="0.65" />
-
-</div>
-</div>
-
-<!--
-Presenter note with **bold**, *italic*, and ~~striked~~ text.
-
-Also, HTML elements are valid:
-<div class="flex w-full">
-  <span style="flex-grow: 1;">Left content</span>
-  <span>Right content</span>
-</div>
--->
-
----
-class: px-20
----
-
-# Themes
-
-Slidev comes with powerful theming support. Themes can provide styles, layouts, components, or even configurations for tools. Switching between themes by just **one edit** in your frontmatter:
-
-<div grid="~ cols-2 gap-2" m="t-2">
-
-```yaml
----
-theme: default
----
-```
-
-```yaml
----
-theme: seriph
----
-```
-
-<img border="rounded" src="https://github.com/slidevjs/themes/blob/main/screenshots/theme-default/01.png?raw=true" alt="">
-
-<img border="rounded" src="https://github.com/slidevjs/themes/blob/main/screenshots/theme-seriph/01.png?raw=true" alt="">
-
-</div>
-
-Read more about [How to use a theme](https://sli.dev/guide/theme-addon#use-theme) and
-check out the [Awesome Themes Gallery](https://sli.dev/resources/theme-gallery).
+`engine` is **cheap**; create once, reuse everywhere.
 
 ---
 
-# Clicks Animations
+## 6  Declaring Models (E‑commerce Example)
 
-You can add `v-click` to elements to add a click animation.
 
-<div v-click>
+```python
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
+from sqlalchemy import ForeignKey
+from datetime import datetime
 
-This shows up when you click the slide:
-
-```html
-<div v-click>This shows up when you click the slide.</div>
-```
-
-</div>
-
-<br>
-
-<v-click>
-
-The <span v-mark.red="3"><code>v-mark</code> directive</span>
-also allows you to add
-<span v-mark.circle.orange="4">inline marks</span>
-, powered by [Rough Notation](https://roughnotation.com/):
-
-```html
-<span v-mark.underline.orange>inline markers</span>
-```
-
-</v-click>
-
-<div mt-20 v-click>
-
-[Learn more](https://sli.dev/guide/animations#click-animation)
-
-</div>
-
----
-
-# Motions
-
-Motion animations are powered by [@vueuse/motion](https://motion.vueuse.org/), triggered by `v-motion` directive.
-
-```html
-<div
-  v-motion
-  :initial="{ x: -80 }"
-  :enter="{ x: 0 }"
-  :click-3="{ x: 80 }"
-  :leave="{ x: 1000 }"
->
-  Slidev
-</div>
-```
-
-<div class="w-60 relative">
-  <div class="relative w-40 h-40">
-    <img
-      v-motion
-      :initial="{ x: 800, y: -100, scale: 1.5, rotate: -50 }"
-      :enter="final"
-      class="absolute inset-0"
-      src="https://sli.dev/logo-square.png"
-      alt=""
-    />
-    <img
-      v-motion
-      :initial="{ y: 500, x: -100, scale: 2 }"
-      :enter="final"
-      class="absolute inset-0"
-      src="https://sli.dev/logo-circle.png"
-      alt=""
-    />
-    <img
-      v-motion
-      :initial="{ x: 600, y: 400, scale: 2, rotate: 100 }"
-      :enter="final"
-      class="absolute inset-0"
-      src="https://sli.dev/logo-triangle.png"
-      alt=""
-    />
-  </div>
-
-  <div
-    class="text-5xl absolute top-14 left-40 text-[#2B90B6] -z-1"
-    v-motion
-    :initial="{ x: -80, opacity: 0}"
-    :enter="{ x: 0, opacity: 1, transition: { delay: 2000, duration: 1000 } }">
-    Slidev
-  </div>
-</div>
-
-<!-- vue script setup scripts can be directly used in markdown, and will only affects current page -->
-<script setup lang="ts">
-const final = {
-  x: 0,
-  y: 0,
-  rotate: 0,
-  scale: 1,
-  transition: {
-    type: 'spring',
-    damping: 10,
-    stiffness: 20,
-    mass: 2
-  }
-}
-</script>
-
-<div
-  v-motion
-  :initial="{ x:35, y: 30, opacity: 0}"
-  :enter="{ y: 0, opacity: 1, transition: { delay: 3500 } }">
-
-[Learn more](https://sli.dev/guide/animations.html#motion)
-
-</div>
-
----
-
-# LaTeX
-
-LaTeX is supported out-of-box. Powered by [KaTeX](https://katex.org/).
-
-<div h-3 />
-
-Inline $\sqrt{3x-1}+(1+x)^2$
-
-Block
-$$ {1|3|all}
-\begin{aligned}
-\nabla \cdot \vec{E} &= \frac{\rho}{\varepsilon_0} \\
-\nabla \cdot \vec{B} &= 0 \\
-\nabla \times \vec{E} &= -\frac{\partial\vec{B}}{\partial t} \\
-\nabla \times \vec{B} &= \mu_0\vec{J} + \mu_0\varepsilon_0\frac{\partial\vec{E}}{\partial t}
-\end{aligned}
-$$
-
-[Learn more](https://sli.dev/features/latex)
-
----
-
-# Diagrams
-
-You can create diagrams / graphs from textual descriptions, directly in your Markdown.
-
-<div class="grid grid-cols-4 gap-5 pt-4 -mb-6">
-
-```mermaid {scale: 0.5, alt: 'A simple sequence diagram'}
-sequenceDiagram
-    Alice->John: Hello John, how are you?
-    Note over Alice,John: A typical interaction
-```
-
-```mermaid {theme: 'neutral', scale: 0.8}
-graph TD
-B[Text] --> C{Decision}
-C -->|One| D[Result 1]
-C -->|Two| E[Result 2]
-```
-
-```mermaid
-mindmap
-  root((mindmap))
-    Origins
-      Long history
-      ::icon(fa fa-book)
-      Popularisation
-        British popular psychology author Tony Buzan
-    Research
-      On effectiveness<br/>and features
-      On Automatic creation
-        Uses
-            Creative techniques
-            Strategic planning
-            Argument mapping
-    Tools
-      Pen and paper
-      Mermaid
-```
-
-```plantuml {scale: 0.7}
-@startuml
-
-package "Some Group" {
-  HTTP - [First Component]
-  [Another Component]
-}
-
-node "Other Groups" {
-  FTP - [Second Component]
-  [First Component] --> FTP
-}
-
-cloud {
-  [Example 1]
-}
-
-database "MySql" {
-  folder "This is my folder" {
-    [Folder 3]
-  }
-  frame "Foo" {
-    [Frame 4]
-  }
-}
-
-[Another Component] --> [Example 1]
-[Example 1] --> [Folder 3]
-[Folder 3] --> [Frame 4]
-
-@enduml
-```
-
-</div>
-
-Learn more: [Mermaid Diagrams](https://sli.dev/features/mermaid) and [PlantUML Diagrams](https://sli.dev/features/plantuml)
-
----
-foo: bar
-dragPos:
-  square: 691,32,167,_,-16
----
-
-# Draggable Elements
-
-Double-click on the draggable elements to edit their positions.
-
-<br>
-
-###### Directive Usage
-
-```md
-<img v-drag="'square'" src="https://sli.dev/logo.png">
-```
-
-<br>
-
-###### Component Usage
-
-```md
-<v-drag text-3xl>
-  <div class="i-carbon:arrow-up" />
-  Use the `v-drag` component to have a draggable container!
-</v-drag>
-```
-
-<v-drag pos="663,206,261,_,-15">
-  <div text-center text-3xl border border-main rounded>
-    Double-click me!
-  </div>
-</v-drag>
-
-<img v-drag="'square'" src="https://sli.dev/logo.png">
-
-###### Draggable Arrow
-
-```md
-<v-drag-arrow two-way />
-```
-
-<v-drag-arrow pos="67,452,253,46" two-way op70 />
-
----
-src: ./pages/imported-slides.md
-hide: false
----
-
----
-
-# Monaco Editor
-
-Slidev provides built-in Monaco Editor support.
-
-Add `{monaco}` to the code block to turn it into an editor:
-
-```ts {monaco}
-import { ref } from 'vue'
-import { emptyArray } from './external'
-
-const arr = ref(emptyArray(10))
-```
-
-Use `{monaco-run}` to create an editor that can execute the code directly in the slide:
-
-```ts {monaco-run}
-import { version } from 'vue'
-import { emptyArray, sayHello } from './external'
-
-sayHello()
-console.log(`vue ${version}`)
-console.log(emptyArray<number>(10).reduce(fib => [...fib, fib.at(-1)! + fib.at(-2)!], [1, 1]))
+class Base(DeclarativeBase):
+    pass
 ```
 
 ---
-layout: center
-class: text-center
+
+```python
+class Customer(Base):
+    __tablename__ = "customers"
+
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    email: Mapped[str] = mapped_column(unique=True)
+    created_at: Mapped[datetime] = mapped_column(server_default="now()")
+
+    orders: Mapped[list["Order"]] = relationship(back_populates="customer")
+```
+
 ---
 
-# Learn More
+```python
 
-[Documentation](https://sli.dev) · [GitHub](https://github.com/slidevjs/slidev) · [Showcases](https://sli.dev/resources/showcases)
+class Product(Base):
+    __tablename__ = "products"
 
-<PoweredBySlidev mt-10 />
+    id: Mapped[int] = mapped_column(primary_key=True)
+    name: Mapped[str]
+    price_cents: Mapped[int]
+```
+
+---
+
+```python
+class Order(Base):
+    __tablename__ = "orders"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    customer_id: Mapped[int] = mapped_column(ForeignKey("customers.id"))
+    placed_at: Mapped[datetime] = mapped_column(server_default="now()")
+
+    customer: Mapped["Customer"] = relationship(back_populates="orders")
+    items:    Mapped[list["OrderItem"]] = relationship(back_populates="order")
+```
+
+---
+
+```python
+class OrderItem(Base):
+    __tablename__ = "order_items"
+
+    order_id:   Mapped[int] = mapped_column(ForeignKey("orders.id"), primary_key=True)
+    product_id: Mapped[int] = mapped_column(ForeignKey("products.id"), primary_key=True)
+    qty:        Mapped[int]
+
+    order:   Mapped["Order"] = relationship(back_populates="items")
+```
+
+
+---
+
+
+## 7  Creating the Schema
+
+```python
+Base.metadata.create_all(engine)      # Generates and runs CREATE TABLE … SQL
+```
+
+---
+
+## 8  Unit of Work: Sessions
+
+```python
+from sqlalchemy.orm import Session
+
+with Session(engine) as session:
+    new_customer = Customer(email="avner@example.com")
+    session.add(new_customer)         # staged
+    session.commit()                  # INSERT happens here
+```
+
+Key ideas to hammer home:
+
+1. **Identity map** – within a session, each row is represented by *one* Python object.
+2. **Lazy vs. eager loading** – accessing `customer.orders` may trigger a SELECT.
+3. **Transactions** – `Session` wraps every flush in a database transaction.
+
+
+---
+
+
+## 9  Querying
+
+```python
+from sqlalchemy import select
+
+with Session(engine) as session:
+    stmt = (
+        select(Order)
+        .join(Order.customer)
+        .where(Customer.email == "avner@example.com")
+        .order_by(Order.placed_at.desc())
+        .limit(5)
+    )
+    recent_orders = session.scalars(stmt).all()
+```
+
+Explain:
+
+* `select()` → SQL is built safely.
+* `.scalars()` flattens the `Row` objects to the first column (the `Order`).
+
+
+---
+
+
+## 10  Lazy, Eager, and “N + 1”
+
+Demonstrate with echo logs:
+
+```python
+orders = session.scalars(select(Order).limit(3)).all()
+for o in orders:
+    print([item.qty for item in o.items])   # may emit 3 extra queries!
+```
+
+Mitigate:
+
+```python
+from sqlalchemy.orm import selectinload
+
+stmt = select(Order).options(selectinload(Order.items)).limit(3)
+```
+---
+
+## 11  Migrations with Alembic (Brief)
+
+1. `alembic init alembic`
+2. Edit `alembic.ini` to point at the same URL.
+3. `alembic revision --autogenerate -m "add order tables"`
+4. `alembic upgrade head`
+
+Teach that **DDL belongs in version control**; never `DROP TABLE` without a migration.
+
+---
+
+## 12  Performance Tips
+
+* Keep an eye on **query count**; integrate `pytest-sqlalchemy` or a custom echo logger in unit tests.
+* Prefer **bulk operations** (`session.execute()` with raw SQL) for mass updates.
+* Tune **statement caching** (`engine = create_engine(..., pool_size=10, max_overflow=20)`).
+
+---
+
+## 13  When to *Skip* the ORM
+
+| Scenario | Why raw SQL / Core is better |
+|----------|------------------------------|
+| Ad‑hoc analytics / data science | ORMs obscure GROUP BY, CTEs, window functions |
+| Heavy batch ETL | `COPY`, `INSERT … SELECT` need Core or SQL strings |
+| Ultra‑high‑perf hot code paths | Python object overhead dominates |
+
+---
+
+## 14  Bridging Back to Theory
+
+* Relational algebra ↔ SQL ↔ SQLAlchemy Core → ORM  
+  (Make students translate the same query across the three.)
+* Emphasise that **good schema design** remains essential – the ORM cannot fix poor normalization.
+
+---
+
+## 15  Further Reading & Exercises
+
+1. **Reading** – SQLAlchemy 2.0 tutorial sections: ORM Quick Start, Relationship Patterns.  
+2. **Hands‑on** – extend the e‑commerce schema with a `Coupon` model and demonstrate a one‑to‑many relationship (`Coupon.redemptions`).  
+3. **Challenge** – profile an *N + 1* situation and refactor with `selectinload`.
+
+---
+
+## 16  Key Takeaways
+
+* ORMs like SQLAlchemy improve productivity **without discarding SQL**.  
+* Understand the **Session lifecycle**, **lazy loading**, and **transactions** to avoid surprises.  
+* Use the **right abstraction level** for every problem: ORM ↔ Core ↔ raw SQL.
