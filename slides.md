@@ -16,7 +16,7 @@ mdc: true
 
 ---
 
-# Object Relational Mapper
+# Object Relational Mappers
 
 CST 363
 
@@ -39,7 +39,7 @@ CST 363
 
 ---
 
-## 1  Why ORMs Exist
+## Why ORMs Exist
 
 <br>
 
@@ -48,13 +48,16 @@ CST 363
 
 - **Raise the abstraction** --- focus on domain models (`User`, `Order`, `Product`) instead of SQL plumbing.
 
-- **Database portability** --- the *same* Python code can speak to Postgres in production and SQLite during unit‑tests.
+- **Database portability** --- the *same* Python code can speak to PostgreSQL in production and SQLite during unit‑tests.
 
 - **Still SQL‑centered** --- an ORM *generates* SQL; you can drop down to raw SQL any time.
 
+
+<!-- conceptual and structural differences between the way data is represented and manipulated in object-oriented code versus relational databases -->
+
 ---
 
-## 2  Trade‑offs at a Glance
+## Trade‑offs at a Glance
 
 <br>
 
@@ -64,6 +67,15 @@ CST 363
 | Compile‑time model validation | Harder to squeeze the last % of performance |
 | Safe parameter binding (no SQL‑injection) | Learning curve: sessions, identity map |
 | Easy migrations via Alembic | May tempt you to ignore good schema design |
+
+
+<!-- 
+Parameter binding: binding actual values to those placeholders when the query is executed
+
+SELECT * FROM users WHERE id = ?
+
+the ? is a parameter (or placeholder)
+ -->
 
 
 ---
@@ -179,8 +191,16 @@ which would delete your entire users table.
     - Instead of hand-writing raw SQL, you work with, e.g., Python classes and objects.
     
 - Cross-Database Portability
-    - You write the same ORM-based code whether you’re on SQLite, PostgreSQL, MySQL, or Oracle. 
+    - You write the same ORM-based code whether you're on SQLite, PostgreSQL, MySQL, or Oracle. 
         - No conditional SQL syntax in your application logic.
+
+
+<!-- 
+- When you write queries using an ORM, you don’t manually construct SQL strings with user input. Instead, you pass values as parameters, and the ORM safely binds them behind the scenes.
+
+- interact with your database through objects and classes that represent your application’s domain—like User, Order, Comment—instead of raw SQL.
+
+ -->
 
 ---
 
@@ -188,11 +208,14 @@ which would delete your entire users table.
 ## More Benefits
 
 - Maintainability & Readability
-    - Complex joins, eager-loads, transactions, and migrations become declarative
+    - Complex joins, transactions, and migrations become declarative
         - you can reason about your data model in one place (your Python classes) rather than scattered SQL strings.
 
 - Automatic Migrations & Schema Management
     - With extensions like Alembic, you can version and evolve your schema alongside your code, instead of manually writing `ALTER TABLE` scripts.
+
+
+
 
 ---
 
@@ -272,15 +295,20 @@ from sqlalchemy import ForeignKey, Text
 
 class Base(DeclarativeBase):
     pass
-
 ```
+<br>
+
+- `DeclarativeBase` --- to define your base class --- a single shared foundation for all models 
+- `Mapped[...]`  --- marks an attribute as a mapped column or relationship
+- `mapped_column(...)` --- defines a column 
+- `relationship(...)` --- defines ORM relationships between tables
+
 
 ---
 
 ## Declaring Models (2 of 3)
 
 <br>
-
 
 ```python
 class User(Base):
@@ -294,6 +322,12 @@ class User(Base):
     def __repr__(self) -> str:
         return f"<User username={self.username!r}>"
 ```
+
+<br>
+
+
+- `back_populates` creates a bidirectional relationship between `User` and `Comment`
+    - It connects both sides of a relationship explicitly, so changes on one side are reflected on the other
 
 ---
 
@@ -314,8 +348,6 @@ class Comment(Base):
         return f"<Comment text={self.text!r} by {self.user.username!r}>"
 ```
 
-
-
 ---
 
 
@@ -326,7 +358,7 @@ class Comment(Base):
  Generates and runs `CREATE TABLE ... SQL`
 
 ```python
-Base.metadata.create_all(engine)     
+Base.metadata.create_all(bind=engine)     
 ```
 
 ---
@@ -387,7 +419,7 @@ with Session(engine) as session:
 ---
 
 
-## Lazy, Eager, and “N + 1”
+## Lazy, Eager, and "N + 1"
 
 
 The "N + 1" problem is a common performance pitfall when using an ORM with lazy-loaded relationships.
@@ -445,7 +477,7 @@ with Session(engine) as session:
 
 <br>
 
-That’s four queries to get three users and their comments.
+That's four queries to get three users and their comments.
 
 - Round-trip latency multiplies with each extra query.
 - Under load, the database sees a storm of tiny queries rather than a few bigger ones.
@@ -454,6 +486,12 @@ That’s four queries to get three users and their comments.
 <br>
 
 >Use eager loading so that related rows are fetched in bulk
+
+<!-- 
+- Eager loading in an ORM refers to the practice of loading related data up front, in a single query (or a small set of queries), instead of deferring it until it's accessed (which would be lazy loading).
+
+ -->
+
 
 
 ---
@@ -480,13 +518,92 @@ with Session(engine) as session:
 ```
 ---
 
+## SQLAlchemy + Pandas ❤️‍🔥
+
+<br> 
+
+- A Pandas `DataFrame` is a 2D labeled data structure in Python (like a spreadsheet or SQL table)
+    - a collection of rows and columns with mixed data types (int, float, string, etc.).
+    - Built on top of NumPy, optimized for performance and memory.
+    - Commonly used for data analysis, cleaning, filtering, grouping, and visualization prep.
+    - Can be created from: Lists or dictionaries, CSV, Excel, SQL databases, etc.
+
+- Common use cases of this powerful combo:
+    - Read SQL query results into a `DataFrame`
+    - Write a `DataFrame` into a database table
+    - Run analytical queries directly with Pandas on top of your database
+
+---
+
+## Example 1: Read from database into DataFrame
+
+<br>
+
+```python
+import pandas as pd
+from sqlalchemy import create_engine
+
+engine = create_engine("postgresql+psycopg2://user:pass@localhost/dbname")
+
+df = pd.read_sql("SELECT * FROM users", con=engine)
+```
+
+- Under the hood, Pandas uses SQLAlchemy to connect.
+
+- You can also pass a full select() object from SQLAlchemy Core.
+
+
+---
+
+## Example 2: Write DataFrame to database
+
+<br>
+
+```python
+df.to_sql("users", con=engine, if_exists="replace", index=False)
+```
+
+- This creates or replaces a table called `users`.
+
+- `if_exists="append"` adds rows to the table instead.
+
+---
+
+## Example 3: Use ORM to get data, then convert to DataFrame
+
+<br>
+
+```python
+from sqlalchemy.orm import Session
+from models import User
+
+with Session(engine) as session:
+    users = session.query(User).all()
+
+# Convert list of ORM objects to DataFrame
+df = pd.DataFrame([{
+    "id": user.id,
+    "username": user.username,
+    "email": user.email_address
+} for user in users])
+```
+
+- This is useful if you're using the ORM and want full control over fields.
+
+
+---
+
+
 ## Migrations with Alembic (Brief)
 
 <br>
 
 1. `alembic init alembic` <br>
+
 2. Edit `alembic.ini` to point at the same URL. <br>
+
 3. `alembic revision --autogenerate -m "add order tables"` <br>
+
 4. `alembic upgrade head`
 
 <br>
@@ -500,15 +617,6 @@ By putting every schema change into a migration script and committing it, you:
 
 ---
 
-## Performance Tips
-
-<br>
-
-* Keep an eye on **query count**; integrate `pytest-sqlalchemy` or a custom echo logger in unit tests.
-* Prefer **bulk operations** (`session.execute()` with raw SQL) for mass updates.
-* Tune **statement caching** (`engine = create_engine(..., pool_size=10, max_overflow=20)`).
-
----
 
 ##  When to *Skip* the ORM
 
@@ -519,23 +627,7 @@ By putting every schema change into a migration script and committing it, you:
 
 -  When you need full control of SQL, want bulk-friendly operations, or are squeezing out every last microsecond of performance, reach for Core (or plain SQL strings) instead.
 
-<!-- | Scenario | Why raw SQL / Core is better |
-|----------|------------------------------|
-| Ad‑hoc analytics / data science | ORMs obscure GROUP BY, CTEs, window functions |
-| Heavy batch ETL | `COPY`, `INSERT … SELECT` need Core or SQL strings |
-| Ultra‑high‑perf hot code paths | Python object overhead dominates | -->
 
----
-
-## Bridging Back to Theory
-
-<br>
-
-- Relational algebra ↔ SQL ↔ SQLAlchemy Core → ORM  
-
-<br>
-
-> **Good schema design** remains essential – the ORM cannot fix poor normalization.
 
 ---
 
