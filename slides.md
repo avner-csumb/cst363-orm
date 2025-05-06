@@ -7,7 +7,6 @@ info: |
 
   Learn more at [Sli.dev](https://sli.dev)
 
-# https://sli.dev/features/drawing
 drawings:
   persist: false
 
@@ -113,7 +112,10 @@ WHERE username = 'admin'--'
   AND password = 'anything';
 ```
 
-Everything after `--` is treated as a comment, so the `AND password = ...` check is skipped. This effectively logs them in as “admin” without knowing the password.
+<br>
+
+- Everything after `--` is treated as a comment, so the `AND password = ...` check is skipped. 
+    - effectively logs them in as “admin” without knowing the password.
 
 
 ---
@@ -135,7 +137,7 @@ WHERE username = '' OR '1'='1'
   AND password = '' OR '1'='1';
 ```
 
-Since '1'='1' is always true, the query returns the first user.
+Since `'1'='1'` is always true, the query returns the first user.
 
 
 ---
@@ -158,6 +160,8 @@ WHERE username = 'anything';
 DROP TABLE users;--'
   AND password = 'x';
 ```
+
+<br>
 
 which would delete your entire users table.
 
@@ -199,7 +203,9 @@ which would delete your entire users table.
 <br>
 
 1. **Core** – thin, explicit SQL construction layer.  
-   *Think “Pythonic SQL string‑builder.”*
+   - Think “Pythonic SQL string‑builder.”
+   - Includes schema management functions, SQL query builder, and schema inspection utilities
+   
 
 <br>
 
@@ -207,14 +213,20 @@ which would delete your entire users table.
 
 <br>
 
-> **We’ll teach with the 2.0 style API (released 2023), which is declarative‑by‑default and async‑friendly.**
+> We’ll use the 2.0 style API (released 2023), which is declarative‑by‑default and async‑friendly.
+
+<br><br>
+
+<img src="/sqlalchemy.jpg" width="300">
 
 ---
 
 
 ## Getting Set Up
 
-With virtual environment activated: `pip install sqlalchemy psycopg[binary]`
+<br>
+
+With virtual environment activated: `pip install sqlalchemy psycopg[binary] alembic`
 
 - Postgres must be running 
 
@@ -229,15 +241,21 @@ With virtual environment activated: `pip install sqlalchemy psycopg[binary]`
 
 ```python
 from sqlalchemy import create_engine
+
 engine = create_engine(
-    "postgresql+psycopg://shop:secret@localhost:5432/ecommerce",
-    echo=True,      # echo SQL to stdout for teaching moments
+    "postgresql+psycopg://postgres:ott3r@localhost:5431/my_db",
+    echo=True
 )
 ```
 
 <br>
 
-`engine` is **cheap**; create once, reuse everywhere.
+- This is based on our existing PostgreSQL Docker container and a database called `my_db`
+- `engine` is **cheap**; create once, reuse everywhere.
+
+<br>
+
+
 
 ---
 
@@ -322,7 +340,7 @@ from sqlalchemy.orm import Session
 
 with Session(engine) as session:
     # create a user plus a comment in one go
-    new_user    = User(username="avner", email_address="avner@example.com")
+    new_user    = User(username="joe", email_address="joe@example.com")
     new_comment = Comment(text="First post!", user=new_user)
 
     session.add(new_user)   # new_comment is cascaded via the relationship
@@ -372,7 +390,7 @@ with Session(engine) as session:
 ## Lazy, Eager, and “N + 1”
 
 
-The “N + 1” problem is a common performance pitfall when using an ORM with lazy-loaded relationships.
+The "N + 1" problem is a common performance pitfall when using an ORM with lazy-loaded relationships.
 
 - One query to load the parent objects
 
@@ -380,7 +398,7 @@ The “N + 1” problem is a common performance pitfall when using an ORM with l
 
 <br>
 
->Hence, 1 + N queries total—every time you iterate, you pay the cost of a separate round-trip to the database.
+> Hence, 1 + N queries total—every time you iterate, you pay the cost of a separate round-trip to the database.
 
 <!--
 
@@ -466,16 +484,23 @@ with Session(engine) as session:
 
 <br>
 
-1. `alembic init alembic`
-2. Edit `alembic.ini` to point at the same URL.
-3. `alembic revision --autogenerate -m "add order tables"`
+1. `alembic init alembic` <br>
+2. Edit `alembic.ini` to point at the same URL. <br>
+3. `alembic revision --autogenerate -m "add order tables"` <br>
 4. `alembic upgrade head`
 
-Teach that **DDL belongs in version control**; never `DROP TABLE` without a migration.
+<br>
+
+By putting every schema change into a migration script and committing it, you:
+
+- Have a clear, chronological history of how your schema evolved.
+- Can reproduce the same database structure on any machine (dev, test, CI, production).
+- Avoid accidental data loss or “works on my machine” drift.
+
 
 ---
 
-##  Performance Tips
+## Performance Tips
 
 <br>
 
@@ -489,11 +514,16 @@ Teach that **DDL belongs in version control**; never `DROP TABLE` without a migr
 
 <br>
 
-| Scenario | Why raw SQL / Core is better |
+
+- Use the ORM for everyday create-read-update-delete and straightforward query work—its object-mapping and identity-tracking save you boilerplate. 
+
+-  When you need full control of SQL, want bulk-friendly operations, or are squeezing out every last microsecond of performance, reach for Core (or plain SQL strings) instead.
+
+<!-- | Scenario | Why raw SQL / Core is better |
 |----------|------------------------------|
 | Ad‑hoc analytics / data science | ORMs obscure GROUP BY, CTEs, window functions |
 | Heavy batch ETL | `COPY`, `INSERT … SELECT` need Core or SQL strings |
-| Ultra‑high‑perf hot code paths | Python object overhead dominates |
+| Ultra‑high‑perf hot code paths | Python object overhead dominates | -->
 
 ---
 
@@ -501,9 +531,11 @@ Teach that **DDL belongs in version control**; never `DROP TABLE` without a migr
 
 <br>
 
-* Relational algebra ↔ SQL ↔ SQLAlchemy Core → ORM  
-  (Make students translate the same query across the three.)
-* Emphasise that **good schema design** remains essential – the ORM cannot fix poor normalization.
+- Relational algebra ↔ SQL ↔ SQLAlchemy Core → ORM  
+
+<br>
+
+> **Good schema design** remains essential – the ORM cannot fix poor normalization.
 
 ---
 
@@ -511,16 +543,17 @@ Teach that **DDL belongs in version control**; never `DROP TABLE` without a migr
 
 <br>
 
-1. **Reading** – SQLAlchemy 2.0 tutorial sections: ORM Quick Start, Relationship Patterns.  
-2. **Hands‑on** – extend the e‑commerce schema with a `Coupon` model and demonstrate a one‑to‑many relationship (`Coupon.redemptions`).  
-3. **Challenge** – profile an *N + 1* situation and refactor with `selectinload`.
+**Reading** --- SQLAlchemy 2.0 tutorial sections: <a href="https://docs.sqlalchemy.org/en/20/orm/quickstart.html">ORM Quick Start</a>, Relationship Patterns.  <br>
 
----
+<!-- 2. **Hands‑on** – extend the e‑commerce schema with a `Coupon` model and demonstrate a one‑to‑many relationship (`Coupon.redemptions`).  <br>
+3. **Challenge** – profile an *N + 1* situation and refactor with `selectinload`. -->
+
+<!-- ---
 
 ## Key Takeaways
 
 <br>
 
-* ORMs like SQLAlchemy improve productivity **without discarding SQL**.  
-* Understand the **Session lifecycle**, **lazy loading**, and **transactions** to avoid surprises.  
-* Use the **right abstraction level** for every problem: ORM ↔ Core ↔ raw SQL.
+* ORMs like SQLAlchemy improve productivity **without discarding SQL**.
+* Understand the **Session lifecycle**, **lazy loading**, and **transactions** to avoid surprises.
+* Use the **right abstraction level** for every problem: ORM ↔ Core ↔ raw SQL. -->
