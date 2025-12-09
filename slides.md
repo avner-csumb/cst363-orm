@@ -1,6 +1,6 @@
 ---
 # theme: default
-title: Welcome to Slidev
+title: CST 363 ORM
 info: |
   ## Slidev Starter Template
   Presentation slides for developers.
@@ -25,62 +25,229 @@ CST 363
 
 ## What is an ORM?
 
-<br>
+<div class="p-3">
+
+<v-clicks depth="2">
 
 - Description of how an object model "maps" to a relational data model
-    - Class to table(s)
-    - Object properties (attributes) to columns or relations
+    - Class ⇨ table(s)
+    - Object properties (attributes) ⇨ columns or relations
 
-<br>
+</v-clicks>
 
+</div>
+
+<v-click>
 
 <img src="/orm_overview.png" width=500>
 
 
----
-
-## Why ORMs Exist
-
-<br>
-
-- **Impedance mismatch** --- Python, Java, etc. work with *objects*, Postgres, MySQL, etc. store *rows*.  
-  Bridging the two manually means endless `cursor.execute()` calls, hand‑written SQL strings, and error‑prone type conversions.
-
-- **Raise the abstraction** --- focus on domain models (`User`, `Order`, `Product`) instead of SQL plumbing.
-
-- **Database portability** --- the *same* Python code can speak to PostgreSQL in production and SQLite during unit‑tests.
-
-- **Still SQL‑centered** --- an ORM *generates* SQL; you can drop down to raw SQL any time.
+</v-click>
 
 
-<!-- conceptual and structural differences between the way data is represented and manipulated in object-oriented code versus relational databases -->
-
----
-
-## Trade‑offs at a Glance
-
-<br>
-
-| **Strengths** | **Watch out for...** |
-|--------------|---------------|
-| Faster development & fewer lines of code | Hidden queries → *N + 1* problems |
-| Compile‑time model validation | Harder to squeeze the last % of performance |
-| Safe parameter binding (no SQL‑injection) | Learning curve: sessions, identity map |
-| Easy migrations via Alembic | May tempt you to ignore good schema design |
 
 
-<!-- 
-Parameter binding: binding actual values to those placeholders when the query is executed
-
-SELECT * FROM users WHERE id = ?
-
-the ? is a parameter (or placeholder)
- -->
 
 
 ---
 
-## Aside: SQL Injection
+## Two Worlds That Do Not Match Perfectly
+
+<div class="p-3">
+
+<v-clicks depth="2">
+
+- Application code:
+  - In-memory, fast, short-lived
+  - Structured as objects, classes, methods
+- Corporate data:
+  - Persistent, long-lived
+  - Stored in relational databases (RDBMS)
+- These worlds “do not speak the same language” out of the box
+
+</v-clicks>
+
+</div>
+
+---
+
+## The Object-Oriented View (in Code)
+
+<div class="p-3">
+
+<v-clicks depth="2">
+
+
+- We model the domain with:
+  - Classes and inheritance
+  - Methods and behavior
+  - Object references and collections
+- We think in terms of:
+  - `Customer` has many `Orders`
+  - `Order` has many `LineItems`
+  - `Product` is a superclass of `Book`, `Movie`, etc.
+
+</v-clicks>
+
+</div>
+
+---
+
+## The Relational View (in the Database)
+
+<div class="p-3">
+
+<v-clicks depth="2">
+
+
+- We store data using:
+  - Tables (relations)
+  - Rows (tuples)
+  - Columns (attributes)
+- Relationships via:
+  - Primary keys and foreign keys
+  - Join tables (for many-to-many)
+- Querying via SQL:
+  - Set-based, declarative operations (`SELECT`, `JOIN`, `GROUP BY`, ...)
+
+</v-clicks>
+
+</div>
+
+
+---
+
+## The Object–Relational Mismatch
+
+<div class="p-3">
+
+<v-clicks depth="2">
+
+
+- Objects:
+  - Identity via object references
+  - Rich graphs, cycles, inheritance
+- Relations:
+  - Identity via primary keys
+  - Flat rows, joins for relationships
+- Result:
+  - “Impedance mismatch” between:
+    - How we write code
+    - How we store and query data
+
+
+</v-clicks>
+
+</div>
+
+
+---
+
+## What an ORM Actually Does
+
+<div class="p-3">
+
+<v-clicks depth="2">
+
+
+- Maps between objects and relational data:
+  - Class ↔ Table
+  - Object instance ↔ Row
+  - Field/property ↔ Column
+  - Object reference ↔ Foreign key / join table
+- Responsibilities:
+  - Generate SQL for CRUD operations
+  - Manage identity and caching (first-level cache)
+  - Handle transactions (often integrated with app framework)
+- Net effect:
+  - Gives the *illusion* of working with an “object database” over an RDBMS
+
+</v-clicks>
+
+
+</div>
+
+---
+
+## Why Not Just Use an Object Database?
+
+
+<div class="p-3">
+
+<v-clicks depth="2">
+
+
+- Pure Object Databases (OODBMS) did not become mainstream:
+  - Weak standardization (limited interoperability)
+  - Poor fit for analytics and reporting
+  - Harder to do ad-hoc, set-based queries over large datasets
+- Relational model won for business data:
+  - Strong vendor support (IBM, Oracle, Microsoft, PostgreSQL ecosystem)
+  - SQL as a common, portable query language
+  - Mature tooling for Business Intelligence (BI), reporting, analytics
+
+</v-clicks>
+
+
+</div>
+
+
+---
+
+## Schema Design Still Matters
+
+<div class="p-3">
+
+<v-clicks depth="2">
+
+
+- ORMs do not eliminate the need for good schema design:
+  - A messy schema → complicated, fragile mappings
+  - A clean schema → simpler, more predictable ORM usage
+- Normalization:
+  - Reduce redundancy and update anomalies
+  - Typically target Third Normal Form (3NF) for core transactional data
+- Example:
+  - Instead of one big `ordered_books` table with repeated customer/book data:
+    - `customers`
+    - `books`
+    - `orders`
+    - `order_lines`
+
+</v-clicks>
+
+
+</div>
+
+---
+
+## ORMs: Benefits and Trade-Offs (High-Level)
+
+<div class="p-3">
+
+<v-clicks depth="2">
+
+
+- Benefits:
+  - Faster development for common CRUD
+  - Less boilerplate SQL in application code
+  - Stronger alignment with the domain model (DDD, rich domain objects)
+- Trade-offs:
+  - Generated SQL can be non-obvious and sometimes inefficient
+  - Complex queries may still require hand-written SQL
+  - Easy to forget the cost of queries and N+1 problems
+- Important mindset:
+  - ORM is a tool, not magic
+  - You still need to understand the relational model and SQL
+
+</v-clicks>
+
+</div>
+
+
+---
+
+## Security: SQL Injection
 
 <br>
 
@@ -175,25 +342,30 @@ DROP TABLE users;--'
 
 <br>
 
-which would delete your entire users table.
+<p>This deletes your entire users table.</p>
 
 
 ---
 
 ## How an ORM can help here
 
+<div class="p-3">
+
+<v-clicks depth="3">
+
 - Built-in Parameterization
     - Query API parameters are automatically bound for you
         - you never string-interpolate user input into SQL. 
     Injection risks become effectively zero.
-
 - Domain-centric Code
     - Instead of hand-writing raw SQL, you work with, e.g., Python classes and objects.
-    
 - Cross-Database Portability
     - You write the same ORM-based code whether you're on SQLite, PostgreSQL, MySQL, or Oracle. 
         - No conditional SQL syntax in your application logic.
 
+</v-clicks>
+
+</div>
 
 <!-- 
 - When you write queries using an ORM, you don’t manually construct SQL strings with user input. Instead, you pass values as parameters, and the ORM safely binds them behind the scenes.
@@ -202,19 +374,6 @@ which would delete your entire users table.
 
  -->
 
----
-
-
-## More Benefits
-
-- Maintainability & Readability
-    - Complex joins, transactions, and migrations become declarative
-        - you can reason about your data model in one place (your Python classes) rather than scattered SQL strings.
-
-- Automatic Migrations & Schema Management
-    - With extensions like Alembic, you can version and evolve your schema alongside your code, instead of manually writing `ALTER TABLE` scripts.
-
-
 
 
 ---
@@ -222,6 +381,8 @@ which would delete your entire users table.
 
 
 ## SQLAlchemy: Two Layers
+
+Python's arguably best ORM
 
 <br>
 
@@ -273,11 +434,14 @@ engine = create_engine(
 
 <br>
 
+<v-clicks depth="2">
+
 - This is based on our existing PostgreSQL Docker container and a database called `my_db`
-- `engine` is **cheap**; create once, reuse everywhere.
+- `engine` is cheap; create once, reuse everywhere.
+- Alembic is an extension for migrations and schema management
+    - Tools like Alembic allow you to version and evolve your schema alongside your code, instead of manually writing `ALTER TABLE` scripts
 
-<br>
-
+</v-clicks>
 
 
 ---
@@ -520,7 +684,9 @@ with Session(engine) as session:
 
 ## SQLAlchemy + Pandas ❤️‍🔥
 
-<br> 
+<div class="p-3">
+
+<v-clicks depth="2">
 
 - A Pandas `DataFrame` is a 2D labeled data structure in Python (like a spreadsheet or SQL table)
     - a collection of rows and columns with mixed data types (int, float, string, etc.).
@@ -532,6 +698,10 @@ with Session(engine) as session:
     - Read SQL query results into a `DataFrame`
     - Write a `DataFrame` into a database table
     - Run analytical queries directly with Pandas on top of your database
+
+</v-clicks>
+
+</div>
 
 ---
 
@@ -596,7 +766,9 @@ df = pd.DataFrame([{
 
 ## Migrations with Alembic (Brief)
 
-<br>
+<div class="p-3">
+
+<v-clicks>
 
 1. `alembic init alembic` <br>
 
@@ -606,26 +778,65 @@ df = pd.DataFrame([{
 
 4. `alembic upgrade head`
 
-<br>
+</v-clicks>
+
+</div>
+
+<div class="p-3">
+
+
+<v-click>
 
 By putting every schema change into a migration script and committing it, you:
+
+</v-click>
+
+<v-clicks>
+
 
 - Have a clear, chronological history of how your schema evolved.
 - Can reproduce the same database structure on any machine (dev, test, CI, production).
 - Avoid accidental data loss or “works on my machine” drift.
 
+</v-clicks>
+
+
+</div>
 
 ---
 
 
 ##  When to *Skip* the ORM
 
-<br>
+<div class="p-3">
+
+
+<v-clicks>
 
 
 - Use the ORM for everyday create-read-update-delete and straightforward query work—its object-mapping and identity-tracking save you boilerplate. 
 
 -  When you need full control of SQL, want bulk-friendly operations, or are squeezing out every last microsecond of performance, reach for Core (or plain SQL strings) instead.
+
+</v-clicks>
+
+
+</div>
+
+---
+
+
+## Trade‑offs at a Glance
+
+<br>
+
+| **Strengths** | **Watch out for...** |
+|--------------|---------------|
+| Faster development & fewer lines of code | Hidden queries → *N + 1* problems |
+| Compile‑time model validation | Harder to squeeze the last % of performance |
+| Safe parameter binding (no SQL‑injection) | Learning curve: sessions, identity map |
+| Easy migrations via Alembic | May tempt you to ignore good schema design |
+
 
 
 
