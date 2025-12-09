@@ -416,6 +416,9 @@ With virtual environment activated: `pip install sqlalchemy psycopg[binary] alem
 
 - Create a database
 
+- Alembic is an extension for migrations and schema management
+    - Tools like Alembic allow you to version and evolve your schema alongside your code, instead of manually writing `ALTER TABLE` scripts
+
 
 ---
 
@@ -438,8 +441,7 @@ engine = create_engine(
 
 - This is based on our existing PostgreSQL Docker container and a database called `my_db`
 - `engine` is cheap; create once, reuse everywhere.
-- Alembic is an extension for migrations and schema management
-    - Tools like Alembic allow you to version and evolve your schema alongside your code, instead of manually writing `ALTER TABLE` scripts
+
 
 </v-clicks>
 
